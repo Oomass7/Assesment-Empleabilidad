@@ -1,7 +1,9 @@
 package com.assessment.projectmanagement.infrastructure.adapter.in.web.controller;
 
 import com.assessment.projectmanagement.domain.model.Project;
+import com.assessment.projectmanagement.domain.port.in.project.ActivateProjectUseCase;
 import com.assessment.projectmanagement.domain.port.in.project.CreateProjectUseCase;
+import com.assessment.projectmanagement.domain.port.in.project.GetProjectUseCase;
 import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.request.CreateProjectRequest;
 import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.response.ApiResponse;
 import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.response.ProjectResponse;
@@ -10,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * REST Controller for Project operations
@@ -20,51 +25,89 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ProjectController {
 
-    private final CreateProjectUseCase createProjectUseCase;
-    // TODO: Inject other use cases as you implement them
+        private final CreateProjectUseCase createProjectUseCase;
+        private final ActivateProjectUseCase activateProjectUseCase;
+        private final GetProjectUseCase getProjectUseCase;
 
-    /**
-     * Create a new project
-     */
-    @PostMapping
-    public ResponseEntity<ApiResponse<ProjectResponse>> createProject(
-            @Valid @RequestBody CreateProjectRequest request) {
+        /**
+         * Create a new project
+         * POST /api/projects
+         */
+        @PostMapping
+        public ResponseEntity<ApiResponse<ProjectResponse>> createProject(
+                        @Valid @RequestBody CreateProjectRequest request) {
 
-        // Convert request to command
-        CreateProjectUseCase.CreateProjectCommand command = new CreateProjectUseCase.CreateProjectCommand(
-                request.getName(),
-                request.getDescription(),
-                request.getStartDate(),
-                request.getEndDate());
+                // Convert request to command
+                CreateProjectUseCase.CreateProjectCommand command = new CreateProjectUseCase.CreateProjectCommand(
+                                request.getName(),
+                                request.getDescription(),
+                                request.getStartDate(),
+                                request.getEndDate());
 
-        // Execute use case
-        Project project = createProjectUseCase.createProject(command);
+                // Execute use case
+                Project project = createProjectUseCase.createProject(command);
 
-        // Convert domain model to response DTO
-        ProjectResponse response = ProjectResponse.builder()
-                .id(project.getId())
-                .name(project.getName())
-                .description(project.getDescription())
-                .status(project.getStatus().name())
-                .startDate(project.getStartDate())
-                .endDate(project.getEndDate())
-                .createdAt(project.getCreatedAt())
-                .updatedAt(project.getUpdatedAt())
-                .ownerId(project.getOwner().getId())
-                .ownerUsername(project.getOwner().getUsername())
-                .completionPercentage(project.getCompletionPercentage())
-                .build();
+                // Convert domain model to response DTO
+                ProjectResponse response = mapToResponse(project);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Project created successfully", response));
-    }
+                return ResponseEntity
+                                .status(HttpStatus.CREATED)
+                                .body(ApiResponse.success("Project created successfully", response));
+        }
 
-    // TODO: Add more endpoints:
-    // @GetMapping("/{id}") - Get project by ID
-    // @GetMapping - Get all projects
-    // @PutMapping("/{id}") - Update project
-    // @DeleteMapping("/{id}") - Delete project
-    // @PatchMapping("/{id}/activate") - Activate project
-    // @PatchMapping("/{id}/complete") - Complete project
+        /**
+         * Get all projects for current user
+         * GET /api/projects
+         */
+        @GetMapping
+        public ResponseEntity<ApiResponse<List<ProjectResponse>>> getAllProjects() {
+                List<Project> projects = getProjectUseCase.getAllProjects();
+
+                List<ProjectResponse> responses = projects.stream()
+                                .map(this::mapToResponse)
+                                .collect(Collectors.toList());
+
+                return ResponseEntity.ok(ApiResponse.success(responses));
+        }
+
+        /**
+         * Get project by ID
+         * GET /api/projects/{id}
+         */
+        @GetMapping("/{id}")
+        public ResponseEntity<ApiResponse<ProjectResponse>> getProjectById(@PathVariable Long id) {
+                Project project = getProjectUseCase.getProjectById(id);
+                ProjectResponse response = mapToResponse(project);
+                return ResponseEntity.ok(ApiResponse.success(response));
+        }
+
+        /**
+         * Activate a project
+         * PATCH /api/projects/{id}/activate
+         */
+        @PatchMapping("/{id}/activate")
+        public ResponseEntity<ApiResponse<ProjectResponse>> activateProject(@PathVariable Long id) {
+                Project project = activateProjectUseCase.activateProject(id);
+                ProjectResponse response = mapToResponse(project);
+                return ResponseEntity.ok(ApiResponse.success("Project activated successfully", response));
+        }
+
+        /**
+         * Helper method to convert Project domain model to ProjectResponse DTO
+         */
+        private ProjectResponse mapToResponse(Project project) {
+                return ProjectResponse.builder()
+                                .id(project.getId())
+                                .name(project.getName())
+                                .description(project.getDescription())
+                                .status(project.getStatus().name())
+                                .startDate(project.getStartDate())
+                                .endDate(project.getEndDate())
+                                .createdAt(project.getCreatedAt())
+                                .updatedAt(project.getUpdatedAt())
+                                .ownerId(project.getOwner().getId())
+                                .ownerUsername(project.getOwner().getUsername())
+                                .completionPercentage(project.getCompletionPercentage())
+                                .build();
+        }
 }
