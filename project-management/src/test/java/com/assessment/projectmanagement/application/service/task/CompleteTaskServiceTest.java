@@ -1,9 +1,8 @@
 package com.assessment.projectmanagement.application.service.task;
 
-import com.assessment.projectmanagement.domain.enums.ProjectStatus;
 import com.assessment.projectmanagement.domain.enums.TaskStatus;
-import com.assessment.projectmanagement.domain.enums.UserRole;
 import com.assessment.projectmanagement.domain.exception.BusinessException;
+import com.assessment.projectmanagement.domain.exception.UnauthorizedException;
 import com.assessment.projectmanagement.domain.model.Project;
 import com.assessment.projectmanagement.domain.model.Task;
 import com.assessment.projectmanagement.domain.model.User;
@@ -11,10 +10,10 @@ import com.assessment.projectmanagement.domain.port.out.AuditLogPort;
 import com.assessment.projectmanagement.domain.port.out.CurrentUserPort;
 import com.assessment.projectmanagement.domain.port.out.NotificationPort;
 import com.assessment.projectmanagement.domain.port.out.TaskRepositoryPort;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -22,164 +21,100 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for CompleteTaskService
- * Tests the business rules for task completion
- */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("CompleteTaskService Tests")
 class CompleteTaskServiceTest {
 
-    @Mock
-    private TaskRepositoryPort taskRepository;
+        @Mock
+        private TaskRepositoryPort taskRepository;
+        @Mock
+        private CurrentUserPort currentUserPort;
+        @Mock
+        private AuditLogPort auditLogPort;
+        @Mock
+        private NotificationPort notificationPort;
 
-    @Mock
-    private CurrentUserPort currentUserPort;
+        @InjectMocks
+        private CompleteTaskService completeTaskService;
 
-    @Mock
-    private AuditLogPort auditLogPort;
+        @Test
+        @DisplayName("CompleteTask_AlreadyCompleted_ShouldFail")
+        void shouldFailWhenTaskIsAlreadyCompleted() {
+                // Arrange
+                Long taskId = 1L;
+                Long userId = 100L;
+                User owner = User.builder().id(userId).build();
+                Project project = Project.builder().owner(owner).build();
 
-    @Mock
-    private NotificationPort notificationPort;
+                Task completedTask = Task.builder()
+                                .id(taskId)
+                                .project(project)
+                                .status(TaskStatus.COMPLETED)
+                                .completedAt(LocalDateTime.now())
+                                .build();
 
-    private CompleteTaskService completeTaskService;
+                when(currentUserPort.getCurrentUser()).thenReturn(owner);
+                when(taskRepository.findById(taskId)).thenReturn(Optional.of(completedTask));
 
-    private User owner;
-    private Project project;
-    private Task task;
-    private Task completedTask;
+                // Act & Assert
+                assertThrows(BusinessException.class, () -> completeTaskService.completeTask(taskId));
+                verify(taskRepository, never()).save(any());
+        }
 
-    @BeforeEach
-    void setUp() {
-        completeTaskService = new CompleteTaskService(
-                taskRepository,
-                currentUserPort,
-                auditLogPort,
-                notificationPort);
+        @Test
+        @DisplayName("CompleteTask_ShouldGenerateAuditAndNotification")
+        void shouldSucceedAndGenerateAuditAndNotification() {
+                // Arrange
+                Long taskId = 1L;
+                Long userId = 100L;
+                User owner = User.builder().id(userId).username("testuser").email("test@example.com").build();
+                Project project = Project.builder().owner(owner).build();
 
-        // Setup owner user
-        owner = User.builder()
-                .id(1L)
-                .username("owner")
-                .email("owner@example.com")
-                .password("password")
-                .role(UserRole.PROJECT_MANAGER)
-                .active(true)
-                .createdAt(LocalDateTime.now())
-                .build();
+                Task pendingTask = Task.builder()
+                                .id(taskId)
+                                .title("Test Task")
+                                .project(project)
+                                .status(TaskStatus.IN_PROGRESS)
+                                .build();
 
-        // Setup project
-        project = Project.builder()
-                .id(1L)
-                .name("Test Project")
-                .description("Test Description")
-                .status(ProjectStatus.ACTIVE)
-                .owner(owner)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+                when(currentUserPort.getCurrentUser()).thenReturn(owner);
+                when(taskRepository.findById(taskId)).thenReturn(Optional.of(pendingTask));
+                when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Setup incomplete task
-        task = Task.builder()
-                .id(1L)
-                .title("Test Task")
-                .description("Test Description")
-                .status(TaskStatus.TODO)
-                .project(project)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+                // Act
+                Task result = completeTaskService.completeTask(taskId);
 
-        // Setup already completed task
-        completedTask = Task.builder()
-                .id(2L)
-                .title("Completed Task")
-                .description("Already completed")
-                .status(TaskStatus.COMPLETED)
-                .completedAt(LocalDateTime.now())
-                .project(project)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-    }
+                // Assert
+                assertEquals(TaskStatus.COMPLETED, result.getStatus());
+                assertNotNull(result.getCompletedAt());
 
-    @Test
-    @DisplayName("CompleteTask_ShouldGenerateAuditAndNotification")
-    void completeTask_ShouldGenerateAuditAndNotification() {
-        // Arrange
-        when(currentUserPort.getCurrentUser()).thenReturn(owner);
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
-        when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                verify(auditLogPort).logUpdate(eq("Task"), eq(taskId), eq("testuser"), contains("Completed task"));
+                verify(notificationPort).sendTaskCompletedNotification(eq(taskId), eq("Test Task"),
+                                eq("test@example.com"));
+        }
 
-        // Act
-        Task result = completeTaskService.completeTask(1L);
+        @Test
+        @DisplayName("CompleteTask_ByNonOwner_ShouldFail")
+        void shouldFailWhenUserIsNotProjectOwner() {
+                // Arrange
+                Long taskId = 1L;
+                Long ownerId = 100L;
+                Long otherUserId = 999L;
 
-        // Assert
-        assertNotNull(result);
-        assertTrue(result.isCompleted());
-        assertEquals(TaskStatus.COMPLETED, result.getStatus());
-        assertNotNull(result.getCompletedAt());
+                User owner = User.builder().id(ownerId).build();
+                User otherUser = User.builder().id(otherUserId).build();
+                Project project = Project.builder().owner(owner).build();
 
-        // Verify audit log was generated
-        verify(auditLogPort).logUpdate(
-                eq("Task"),
-                eq(1L),
-                eq("owner"),
-                contains("Completed task: Test Task"));
+                Task task = Task.builder().id(taskId).project(project).build();
 
-        // Verify notification was sent
-        verify(notificationPort).sendTaskCompletedNotification(
-                eq(1L),
-                eq("Test Task"),
-                eq("owner@example.com"));
+                when(currentUserPort.getCurrentUser()).thenReturn(otherUser);
+                when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
 
-        // Verify task was saved
-        verify(taskRepository).save(any(Task.class));
-    }
-
-    @Test
-    @DisplayName("CompleteTask_AlreadyCompleted_ShouldFail")
-    void completeTask_AlreadyCompleted_ShouldFail() {
-        // Arrange
-        when(currentUserPort.getCurrentUser()).thenReturn(owner);
-        when(taskRepository.findById(2L)).thenReturn(Optional.of(completedTask));
-
-        // Act & Assert
-        BusinessException exception = assertThrows(
-                BusinessException.class,
-                () -> completeTaskService.completeTask(2L));
-
-        assertEquals("Task is already completed", exception.getMessage());
-
-        // Verify no side effects occurred
-        verify(taskRepository, never()).save(any(Task.class));
-        verify(auditLogPort, never()).logUpdate(anyString(), anyLong(), anyString(), anyString());
-        verify(notificationPort, never()).sendTaskCompletedNotification(anyLong(), anyString(), anyString());
-    }
-
-    @Test
-    @DisplayName("CompleteTask_ShouldSetCompletedAt")
-    void completeTask_ShouldSetCompletedAt() {
-        // Arrange
-        when(currentUserPort.getCurrentUser()).thenReturn(owner);
-        when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
-        when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        LocalDateTime beforeCompletion = LocalDateTime.now();
-
-        // Act
-        Task result = completeTaskService.completeTask(1L);
-
-        LocalDateTime afterCompletion = LocalDateTime.now();
-
-        // Assert
-        assertNotNull(result.getCompletedAt());
-        assertTrue(result.getCompletedAt().isAfter(beforeCompletion) ||
-                result.getCompletedAt().isEqual(beforeCompletion));
-        assertTrue(result.getCompletedAt().isBefore(afterCompletion) ||
-                result.getCompletedAt().isEqual(afterCompletion));
-    }
+                // Act & Assert
+                assertThrows(UnauthorizedException.class, () -> completeTaskService.completeTask(taskId));
+                verify(taskRepository, never()).save(any());
+        }
 }

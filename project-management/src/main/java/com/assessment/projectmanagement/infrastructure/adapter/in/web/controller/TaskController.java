@@ -6,6 +6,9 @@ import com.assessment.projectmanagement.domain.port.in.task.CreateTaskUseCase;
 import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.request.CreateTaskRequest;
 import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.response.ApiResponse;
 import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.response.TaskResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,6 +22,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
+@Tag(name = "Tasks", description = "Task management endpoints")
+@SecurityRequirement(name = "bearerAuth")
 public class TaskController {
 
     private final CreateTaskUseCase createTaskUseCase;
@@ -28,6 +33,7 @@ public class TaskController {
      * Create a new task in a project
      * POST /api/projects/{projectId}/tasks
      */
+    @Operation(summary = "Create a new task", description = "Creates a new task associated with a project. Requires JWT.")
     @PostMapping("/projects/{projectId}/tasks")
     public ResponseEntity<ApiResponse<TaskResponse>> createTask(
             @PathVariable Long projectId,
@@ -57,6 +63,7 @@ public class TaskController {
      * Complete a task
      * PATCH /api/tasks/{id}/complete
      */
+    @Operation(summary = "Complete a task", description = "Marks a task as COMPLETED. Fails if the task is already completed or user is not the owner.")
     @PatchMapping("/tasks/{id}/complete")
     public ResponseEntity<ApiResponse<TaskResponse>> completeTask(@PathVariable Long id) {
         Task task = completeTaskUseCase.completeTask(id);

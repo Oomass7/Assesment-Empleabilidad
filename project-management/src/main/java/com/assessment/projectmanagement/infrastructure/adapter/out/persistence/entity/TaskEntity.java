@@ -53,9 +53,14 @@ public class TaskEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonBackReference
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private ProjectEntity project;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to_id")
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private UserEntity assignedTo;
 }

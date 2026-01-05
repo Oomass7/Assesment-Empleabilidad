@@ -50,9 +50,14 @@ public class ProjectEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private UserEntity owner;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @com.fasterxml.jackson.annotation.JsonManagedReference
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
     private List<TaskEntity> tasks = new ArrayList<>();
 }

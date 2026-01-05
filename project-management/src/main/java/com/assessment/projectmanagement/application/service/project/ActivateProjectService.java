@@ -41,10 +41,15 @@ public class ActivateProjectService implements ActivateProjectUseCase {
             throw new UnauthorizedException("Only the project owner can activate it");
         }
 
-        // 4. BUSINESS RULE: Project must have at least one task
+        // 4. BUSINESS RULE: Project must have at least one active task (TODO or
+        // IN_PROGRESS)
         var tasks = taskRepository.findByProjectId(projectId);
-        if (tasks.isEmpty()) {
-            throw new BusinessException("Cannot activate project without tasks");
+        boolean hasActiveTasks = tasks.stream()
+                .anyMatch(
+                        task -> task.getStatus() != com.assessment.projectmanagement.domain.enums.TaskStatus.COMPLETED);
+
+        if (!hasActiveTasks) {
+            throw new BusinessException("Cannot activate project without active tasks (TODO or IN_PROGRESS)");
         }
 
         // 5. Activate project (domain logic)

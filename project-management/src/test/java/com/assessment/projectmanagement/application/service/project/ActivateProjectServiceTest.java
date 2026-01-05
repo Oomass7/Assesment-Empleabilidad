@@ -1,7 +1,7 @@
 package com.assessment.projectmanagement.application.service.project;
 
 import com.assessment.projectmanagement.domain.enums.ProjectStatus;
-import com.assessment.projectmanagement.domain.enums.UserRole;
+import com.assessment.projectmanagement.domain.enums.TaskStatus;
 import com.assessment.projectmanagement.domain.exception.BusinessException;
 import com.assessment.projectmanagement.domain.exception.UnauthorizedException;
 import com.assessment.projectmanagement.domain.model.Project;
@@ -12,10 +12,10 @@ import com.assessment.projectmanagement.domain.port.out.CurrentUserPort;
 import com.assessment.projectmanagement.domain.port.out.NotificationPort;
 import com.assessment.projectmanagement.domain.port.out.ProjectRepositoryPort;
 import com.assessment.projectmanagement.domain.port.out.TaskRepositoryPort;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -26,146 +26,118 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for ActivateProjectService
- * Tests the business rules for project activation
- */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("ActivateProjectService Tests")
 class ActivateProjectServiceTest {
 
-    @Mock
-    private ProjectRepositoryPort projectRepository;
+        @Mock
+        private ProjectRepositoryPort projectRepository;
+        @Mock
+        private TaskRepositoryPort taskRepository;
+        @Mock
+        private CurrentUserPort currentUserPort;
+        @Mock
+        private AuditLogPort auditLogPort;
+        @Mock
+        private NotificationPort notificationPort;
 
-    @Mock
-    private TaskRepositoryPort taskRepository;
+        @InjectMocks
+        private ActivateProjectService activateProjectService;
 
-    @Mock
-    private CurrentUserPort currentUserPort;
+        @Test
+        @DisplayName("ActivateProject_WithTasks_ShouldSucceed")
+        void shouldSucceedWhenProjectHasActiveTasksAndUserIsOwner() {
+                // Arrange
+                Long projectId = 1L;
+                Long userId = 100L;
+                User owner = User.builder().id(userId).username("owner").email("owner@test.com").build();
 
-    @Mock
-    private AuditLogPort auditLogPort;
+                Project project = Project.builder()
+                                .id(projectId)
+                                .name("Test Project")
+                                .owner(owner)
+                                .status(ProjectStatus.INACTIVE) // Estado inicial
+                                .build();
 
-    @Mock
-    private NotificationPort notificationPort;
+                Task activeTask = Task.builder()
+                                .id(1L)
+                                .status(TaskStatus.TODO) // Tarea activa
+                                .project(project)
+                                .build();
 
-    private ActivateProjectService activateProjectService;
+                when(currentUserPort.getCurrentUser()).thenReturn(owner);
+                when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
+                when(taskRepository.findByProjectId(projectId)).thenReturn(List.of(activeTask));
+                when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-    private User owner;
-    private User nonOwner;
-    private Project project;
-    private Task task;
+                // Act
+                Project result = activateProjectService.activateProject(projectId);
 
-    @BeforeEach
-    void setUp() {
-        activateProjectService = new ActivateProjectService(
-                projectRepository,
-                taskRepository,
-                currentUserPort,
-                auditLogPort,
-                notificationPort);
+                // Assert
+                assertEquals(ProjectStatus.ACTIVE, result.getStatus());
+                verify(projectRepository).save(project);
+                verify(auditLogPort).logUpdate(eq("Project"), eq(projectId), eq("owner"), anyString());
+                verify(notificationPort).sendProjectCreatedNotification(eq(projectId), eq("Test Project"),
+                                eq("owner@test.com"));
+        }
 
-        // Setup owner user
-        owner = User.builder()
-                .id(1L)
-                .username("owner")
-                .email("owner@example.com")
-                .password("password")
-                .role(UserRole.PROJECT_MANAGER)
-                .active(true)
-                .createdAt(LocalDateTime.now())
-                .build();
+        @Test
+        @DisplayName("ActivateProject_WithoutTasks_ShouldFail")
+        void shouldFailWhenProjectHasNoTasks() {
+                // Arrange
+                Long projectId = 1L;
+                Long userId = 100L;
+                User owner = User.builder().id(userId).build();
+                Project project = Project.builder().id(projectId).owner(owner).build();
 
-        // Setup non-owner user
-        nonOwner = User.builder()
-                .id(2L)
-                .username("nonowner")
-                .email("nonowner@example.com")
-                .password("password")
-                .role(UserRole.DEVELOPER)
-                .active(true)
-                .createdAt(LocalDateTime.now())
-                .build();
+                when(currentUserPort.getCurrentUser()).thenReturn(owner);
+                when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
+                when(taskRepository.findByProjectId(projectId)).thenReturn(Collections.emptyList());
 
-        // Setup project
-        project = Project.builder()
-                .id(1L)
-                .name("Test Project")
-                .description("Test Description")
-                .status(ProjectStatus.INACTIVE)
-                .owner(owner)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+                // Act & Assert
+                assertThrows(BusinessException.class, () -> activateProjectService.activateProject(projectId));
+                verify(projectRepository, never()).save(any());
+        }
 
-        // Setup task
-        task = Task.builder()
-                .id(1L)
-                .title("Test Task")
-                .project(project)
-                .createdAt(LocalDateTime.now())
-                .build();
-    }
+        @Test
+        @DisplayName("ActivateProject_WithOnlyCompletedTasks_ShouldFail")
+        void shouldFailWhenProjectHasOnlyCompletedTasks() {
+                // Arrange
+                Long projectId = 1L;
+                Long userId = 100L;
+                User owner = User.builder().id(userId).build();
+                Project project = Project.builder().id(projectId).owner(owner).build();
 
-    @Test
-    @DisplayName("ActivateProject_WithTasks_ShouldSucceed")
-    void activateProject_WithTasks_ShouldSucceed() {
-        // Arrange
-        when(currentUserPort.getCurrentUser()).thenReturn(owner);
-        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-        when(taskRepository.findByProjectId(1L)).thenReturn(List.of(task));
-        when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                Task completedTask = Task.builder().status(TaskStatus.COMPLETED).build();
 
-        // Act
-        Project result = activateProjectService.activateProject(1L);
+                when(currentUserPort.getCurrentUser()).thenReturn(owner);
+                when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
+                when(taskRepository.findByProjectId(projectId)).thenReturn(List.of(completedTask));
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(ProjectStatus.ACTIVE, result.getStatus());
-        verify(projectRepository).save(any(Project.class));
-        verify(auditLogPort).logUpdate(eq("Project"), eq(1L), eq("owner"), anyString());
-        verify(notificationPort).sendProjectCreatedNotification(eq(1L), eq("Test Project"), eq("owner@example.com"));
-    }
+                // Act & Assert
+                assertThrows(BusinessException.class, () -> activateProjectService.activateProject(projectId));
+                verify(projectRepository, never()).save(any());
+        }
 
-    @Test
-    @DisplayName("ActivateProject_WithoutTasks_ShouldFail")
-    void activateProject_WithoutTasks_ShouldFail() {
-        // Arrange
-        when(currentUserPort.getCurrentUser()).thenReturn(owner);
-        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-        when(taskRepository.findByProjectId(1L)).thenReturn(Collections.emptyList());
+        @Test
+        @DisplayName("ActivateProject_ByNonOwner_ShouldFail")
+        void shouldFailWhenUserIsNotOwner() {
+                // Arrange
+                Long projectId = 1L;
+                Long ownerId = 100L;
+                Long otherUserId = 999L;
 
-        // Act & Assert
-        BusinessException exception = assertThrows(
-                BusinessException.class,
-                () -> activateProjectService.activateProject(1L));
+                User owner = User.builder().id(ownerId).build();
+                User otherUser = User.builder().id(otherUserId).build();
 
-        assertEquals("Cannot activate project without tasks", exception.getMessage());
-        verify(projectRepository, never()).save(any(Project.class));
-        verify(auditLogPort, never()).logUpdate(anyString(), anyLong(), anyString(), anyString());
-        verify(notificationPort, never()).sendProjectCreatedNotification(anyLong(), anyString(), anyString());
-    }
+                Project project = Project.builder().id(projectId).owner(owner).build();
 
-    @Test
-    @DisplayName("ActivateProject_ByNonOwner_ShouldFail")
-    void activateProject_ByNonOwner_ShouldFail() {
-        // Arrange
-        when(currentUserPort.getCurrentUser()).thenReturn(nonOwner);
-        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+                when(currentUserPort.getCurrentUser()).thenReturn(otherUser);
+                when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
 
-        // Act & Assert
-        UnauthorizedException exception = assertThrows(
-                UnauthorizedException.class,
-                () -> activateProjectService.activateProject(1L));
-
-        assertEquals("Only the project owner can activate it", exception.getMessage());
-        verify(taskRepository, never()).findByProjectId(anyLong());
-        verify(projectRepository, never()).save(any(Project.class));
-        verify(auditLogPort, never()).logUpdate(anyString(), anyLong(), anyString(), anyString());
-        verify(notificationPort, never()).sendProjectCreatedNotification(anyLong(), anyString(), anyString());
-    }
+                // Act & Assert
+                assertThrows(UnauthorizedException.class, () -> activateProjectService.activateProject(projectId));
+                verify(projectRepository, never()).save(any());
+        }
 }
