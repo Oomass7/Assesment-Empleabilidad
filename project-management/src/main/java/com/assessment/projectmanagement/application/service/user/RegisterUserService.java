@@ -35,11 +35,15 @@ public class RegisterUserService implements RegisterUserUseCase {
         }
 
         // 4. Create user
+        // 4. Create user
+        String roleToAssign = (command.role() != null && !command.role().isBlank()) ? command.role()
+                : "PROJECT_MANAGER";
+
         User user = User.builder()
                 .username(command.username())
                 .email(command.email())
                 .password(passwordEncoder.encode(command.password()))
-                .role(UserRole.valueOf(command.role()))
+                .role(UserRole.valueOf(roleToAssign))
                 .active(true)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -61,14 +65,13 @@ public class RegisterUserService implements RegisterUserUseCase {
             throw new ValidationException("Password must be at least 6 characters");
         }
 
-        if (command.role() == null) {
-            throw new ValidationException("Role is required");
-        }
-
-        try {
-            UserRole.valueOf(command.role());
-        } catch (IllegalArgumentException e) {
-            throw new ValidationException("Invalid role. Must be: ADMIN, PROJECT_MANAGER, DEVELOPER, or GUEST");
+        // Role is optional, but if present must be valid
+        if (command.role() != null && !command.role().isEmpty()) {
+            try {
+                UserRole.valueOf(command.role());
+            } catch (IllegalArgumentException e) {
+                throw new ValidationException("Invalid role. Must be: ADMIN, PROJECT_MANAGER, DEVELOPER, or GUEST");
+            }
         }
     }
 }

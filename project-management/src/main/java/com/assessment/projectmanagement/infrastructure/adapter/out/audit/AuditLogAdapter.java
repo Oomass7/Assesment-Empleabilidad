@@ -48,4 +48,30 @@ public class AuditLogAdapter implements AuditLogPort {
     public void logDeletion(String entityType, Long entityId, String username, String details) {
         log(AuditLog.forDeletion(entityType, entityId, username, details));
     }
+
+    @Override
+    public java.util.List<AuditLog> findByEntityTypeAndEntityId(String entityType, Long entityId) {
+        return auditLogRepository.findByEntityTypeAndEntityId(entityType, entityId).stream()
+                .map(this::toDomain)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    public java.util.List<AuditLog> findByEntityTypeAndEntityIdIn(String entityType, java.util.List<Long> entityIds) {
+        return auditLogRepository.findByEntityTypeAndEntityIdIn(entityType, entityIds).stream()
+                .map(this::toDomain)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    private AuditLog toDomain(AuditLogEntity entity) {
+        return AuditLog.builder()
+                .id(entity.getId())
+                .action(entity.getAction())
+                .entityType(entity.getEntityType())
+                .entityId(entity.getEntityId())
+                .username(entity.getUsername())
+                .details(entity.getDetails())
+                .timestamp(entity.getTimestamp())
+                .build();
+    }
 }

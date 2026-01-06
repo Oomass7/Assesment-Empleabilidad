@@ -53,19 +53,11 @@ public class AuthController {
                 // Execute use case
                 User user = registerUserUseCase.registerUser(command);
 
-                // Auto-login after registration
-                AuthenticateUserUseCase.AuthenticationCommand authCommand = new AuthenticateUserUseCase.AuthenticationCommand(
-                                user.getUsername(),
-                                request.getPassword());
-
-                AuthenticateUserUseCase.AuthenticationResult authResult = authenticateUserUseCase
-                                .authenticate(authCommand);
-
-                // Create response
+                // Create response (no token, force login)
                 AuthResponse response = new AuthResponse(
-                                authResult.token(),
-                                authResult.username(),
-                                authResult.role());
+                                null,
+                                user.getUsername(),
+                                user.getRole().name());
 
                 return ResponseEntity
                                 .status(HttpStatus.CREATED)
@@ -83,7 +75,7 @@ public class AuthController {
 
                 // Convert request to command
                 AuthenticateUserUseCase.AuthenticationCommand command = new AuthenticateUserUseCase.AuthenticationCommand(
-                                request.getUsername(),
+                                request.getEmail(),
                                 request.getPassword());
 
                 // Execute use case

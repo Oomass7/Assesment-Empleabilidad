@@ -35,6 +35,12 @@ public class TaskEntityMapper {
                 .createdAt(task.getCreatedAt())
                 .updatedAt(task.getUpdatedAt())
                 .assignedTo(userEntityMapper.toEntity(task.getAssignedTo()))
+                .project(task.getProject() != null
+                        ? com.assessment.projectmanagement.infrastructure.adapter.out.persistence.entity.ProjectEntity
+                                .builder()
+                                .id(task.getProject().getId())
+                                .build()
+                        : null)
                 .build();
     }
 
@@ -57,6 +63,18 @@ public class TaskEntityMapper {
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .assignedTo(userEntityMapper.toDomain(entity.getAssignedTo()))
+                .project(entity.getProject() != null ? com.assessment.projectmanagement.domain.model.Project.builder()
+                        .id(entity.getProject().getId())
+                        .name(entity.getProject().getName())
+                        .status(entity.getProject().getStatus())
+                        .owner(entity.getProject().getOwner() != null
+                                ? com.assessment.projectmanagement.domain.model.User.builder()
+                                        .id(entity.getProject().getOwner().getId())
+                                        .email(entity.getProject().getOwner().getEmail())
+                                        .username(entity.getProject().getOwner().getUsername())
+                                        .build()
+                                : null)
+                        .build() : null)
                 .build();
     }
 }

@@ -42,7 +42,7 @@ public class CreateProjectService implements CreateProjectUseCase {
         Project project = Project.builder()
                 .name(command.name())
                 .description(command.description())
-                .status(ProjectStatus.ACTIVE)
+                .status(ProjectStatus.INACTIVE)
                 .startDate(command.startDate())
                 .endDate(command.endDate())
                 .owner(currentUser)

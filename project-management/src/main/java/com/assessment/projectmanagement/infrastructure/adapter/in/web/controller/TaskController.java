@@ -3,7 +3,9 @@ package com.assessment.projectmanagement.infrastructure.adapter.in.web.controlle
 import com.assessment.projectmanagement.domain.model.Task;
 import com.assessment.projectmanagement.domain.port.in.task.CompleteTaskUseCase;
 import com.assessment.projectmanagement.domain.port.in.task.CreateTaskUseCase;
+import com.assessment.projectmanagement.domain.port.in.task.UpdateTaskUseCase;
 import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.request.CreateTaskRequest;
+import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.request.UpdateTaskRequest;
 import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.response.ApiResponse;
 import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.response.TaskResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,9 +13,13 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import com.assessment.projectmanagement.domain.port.in.task.GetTasksByProjectUseCase;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * REST Controller for Task operations
@@ -28,6 +34,8 @@ public class TaskController {
 
     private final CreateTaskUseCase createTaskUseCase;
     private final CompleteTaskUseCase completeTaskUseCase;
+    private final GetTasksByProjectUseCase getTasksByProjectUseCase;
+    private final UpdateTaskUseCase updateTaskUseCase;
 
     /**
      * Create a new task in a project
@@ -60,6 +68,20 @@ public class TaskController {
     }
 
     /**
+     * Get tasks by project
+     * GET /api/projects/{projectId}/tasks
+     */
+    @Operation(summary = "Get tasks by project", description = "Retrieves all tasks for a specific project. User must be the project owner.")
+    @GetMapping("/projects/{projectId}/tasks")
+    public ResponseEntity<ApiResponse<List<TaskResponse>>> getTasksByProject(@PathVariable Long projectId) {
+        List<Task> tasks = getTasksByProjectUseCase.getTasksByProjectId(projectId);
+        List<TaskResponse> response = tasks.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
      * Complete a task
      * PATCH /api/tasks/{id}/complete
      */
@@ -69,6 +91,26 @@ public class TaskController {
         Task task = completeTaskUseCase.completeTask(id);
         TaskResponse response = mapToResponse(task);
         return ResponseEntity.ok(ApiResponse.success("Task completed successfully", response));
+    }
+
+    /**
+     * Update a task
+     * PUT /api/tasks/{id}
+     */
+    @Operation(summary = "Update task", description = "Updates task details. Fails if task is completed or user is not a member.")
+    @PutMapping("/tasks/{id}")
+    public ResponseEntity<ApiResponse<TaskResponse>> updateTask(@PathVariable Long id,
+            @Valid @RequestBody UpdateTaskRequest request) {
+        UpdateTaskUseCase.UpdateTaskCommand command = new UpdateTaskUseCase.UpdateTaskCommand(
+                id,
+                request.getTitle(),
+                request.getDescription(),
+                request.getPriority(),
+                request.getDueDate(),
+                request.getAssignedToId());
+
+        Task task = updateTaskUseCase.updateTask(command);
+        return ResponseEntity.ok(ApiResponse.success("Task updated successfully", mapToResponse(task)));
     }
 
     /**

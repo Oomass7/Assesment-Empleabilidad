@@ -2,22 +2,17 @@ package com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.reque
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.time.LocalDateTime;
 
-/**
- * DTO for creating a task via REST API
- */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateTaskRequest {
+public class UpdateTaskRequest {
 
     @NotBlank(message = "Task title is required")
     private String title;
@@ -25,7 +20,7 @@ public class CreateTaskRequest {
     private String description;
 
     @NotBlank(message = "Task priority is required")
-    private String priority; // LOW, MEDIUM, HIGH, CRITICAL
+    private String priority;
 
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dueDate;

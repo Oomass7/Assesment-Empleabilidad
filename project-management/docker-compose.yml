@@ -60,6 +60,21 @@ services:
       retries: 5
       start_period: 60s
 
+  # React Frontend
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: project-management-frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - project-management-network
+    restart: unless-stopped
+
 networks:
   project-management-network:
     driver: bridge

@@ -19,6 +19,15 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.assessment.projectmanagement.domain.port.in.project.InviteMemberUseCase;
+import com.assessment.projectmanagement.domain.port.in.project.GetProjectMembersUseCase;
+import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.request.InviteMemberRequest;
+import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.response.UserResponse;
+import com.assessment.projectmanagement.domain.model.User;
+import com.assessment.projectmanagement.domain.port.in.project.GetProjectAuditLogsUseCase;
+import com.assessment.projectmanagement.domain.model.AuditLog;
+import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.response.AuditLogResponse;
+
 /**
  * REST Controller for Project operations
  * This is an INPUT adapter in hexagonal architecture
@@ -33,6 +42,9 @@ public class ProjectController {
         private final CreateProjectUseCase createProjectUseCase;
         private final ActivateProjectUseCase activateProjectUseCase;
         private final GetProjectUseCase getProjectUseCase;
+        private final InviteMemberUseCase inviteMemberUseCase;
+        private final GetProjectMembersUseCase getProjectMembersUseCase;
+        private final GetProjectAuditLogsUseCase getProjectAuditLogsUseCase;
 
         /**
          * Create a new project
@@ -99,6 +111,38 @@ public class ProjectController {
                 Project project = activateProjectUseCase.activateProject(id);
                 ProjectResponse response = mapToResponse(project);
                 return ResponseEntity.ok(ApiResponse.success("Project activated successfully", response));
+        }
+
+        @Operation(summary = "Invite member", description = "Invites a user to the project.")
+        @PostMapping("/{id}/members")
+        public ResponseEntity<ApiResponse<Void>> inviteMember(@PathVariable Long id,
+                        @RequestBody InviteMemberRequest request) {
+                inviteMemberUseCase.inviteMember(id, request.getUserId());
+                return ResponseEntity.ok(ApiResponse.success("Member invited successfully", null));
+        }
+
+        @Operation(summary = "Get project members", description = "Get list of members in the project.")
+        @GetMapping("/{id}/members")
+        public ResponseEntity<ApiResponse<List<UserResponse>>> getMembers(@PathVariable Long id) {
+                List<User> members = getProjectMembersUseCase.getMembers(id);
+                List<UserResponse> response = members.stream()
+                                .map(u -> UserResponse.builder()
+                                                .id(u.getId())
+                                                .username(u.getUsername())
+                                                .email(u.getEmail())
+                                                .build())
+                                .collect(Collectors.toList());
+                return ResponseEntity.ok(ApiResponse.success(response));
+        }
+
+        @GetMapping("/{id}/audit")
+        @Operation(summary = "Get project audit logs")
+        public ResponseEntity<ApiResponse<List<AuditLogResponse>>> getAuditLogs(@PathVariable Long id) {
+                List<AuditLog> logs = getProjectAuditLogsUseCase.getAuditLogs(id);
+                List<AuditLogResponse> response = logs.stream()
+                                .map(AuditLogResponse::fromDomain)
+                                .collect(Collectors.toList());
+                return ResponseEntity.ok(ApiResponse.success(response));
         }
 
         /**

@@ -32,6 +32,27 @@ public class Project {
     private User owner;
 
     @Builder.Default
+    private List<User> members = new ArrayList<>();
+
+    public void addMember(User user) {
+        if (members == null)
+            members = new ArrayList<>();
+        // Check duplication by ID to be safe
+        boolean exists = members.stream().anyMatch(m -> m.getId().equals(user.getId()));
+        if (!exists) {
+            members.add(user);
+        }
+    }
+
+    public boolean isMember(User user) {
+        if (owner.getId().equals(user.getId()))
+            return true;
+        if (members == null)
+            return false;
+        return members.stream().anyMatch(m -> m.getId().equals(user.getId()));
+    }
+
+    @Builder.Default
     private List<Task> tasks = new ArrayList<>();
 
     /**

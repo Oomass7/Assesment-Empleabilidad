@@ -29,6 +29,6 @@ public class RegisterRequest {
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
-    @NotBlank(message = "Role is required")
+    // Role is optional, defaults to PROJECT_MANAGER if null
     private String role; // ADMIN, PROJECT_MANAGER, DEVELOPER, GUEST
 }

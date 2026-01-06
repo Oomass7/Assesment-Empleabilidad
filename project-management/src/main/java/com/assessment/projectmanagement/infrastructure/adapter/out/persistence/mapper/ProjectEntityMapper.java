@@ -37,6 +37,12 @@ public class ProjectEntityMapper {
                 .createdAt(project.getCreatedAt())
                 .updatedAt(project.getUpdatedAt())
                 .owner(userEntityMapper.toEntity(project.getOwner()))
+                .members(project.getMembers() != null ? project.getMembers().stream()
+                        .map(userEntityMapper::toEntity)
+                        .collect(java.util.stream.Collectors.toList()) : new java.util.ArrayList<>())
+                .tasks(project.getTasks() != null ? project.getTasks().stream()
+                        .map(taskEntityMapper::toEntity)
+                        .collect(java.util.stream.Collectors.toList()) : new java.util.ArrayList<>())
                 .build();
     }
 
@@ -58,6 +64,12 @@ public class ProjectEntityMapper {
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .owner(userEntityMapper.toDomain(entity.getOwner()))
+                .members(entity.getMembers() != null ? entity.getMembers().stream()
+                        .map(userEntityMapper::toDomain)
+                        .collect(java.util.stream.Collectors.toList()) : new java.util.ArrayList<>())
+                .tasks(entity.getTasks() != null ? entity.getTasks().stream()
+                        .map(taskEntityMapper::toDomain)
+                        .collect(java.util.stream.Collectors.toList()) : new java.util.ArrayList<>())
                 .build();
     }
 }

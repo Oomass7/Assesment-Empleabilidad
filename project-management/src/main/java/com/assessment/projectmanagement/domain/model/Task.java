@@ -98,4 +98,19 @@ public class Task {
         this.priority = newPriority;
         this.updatedAt = LocalDateTime.now();
     }
+
+    public void updateDetails(String title, String description, TaskPriority priority, LocalDateTime dueDate) {
+        if (this.status == TaskStatus.COMPLETED) {
+            throw new BusinessException("Cannot update details of a completed task");
+        }
+        if (title != null && !title.isBlank())
+            this.title = title;
+        if (description != null)
+            this.description = description;
+        if (priority != null)
+            this.priority = priority;
+        if (dueDate != null)
+            this.dueDate = dueDate;
+        this.updatedAt = LocalDateTime.now();
+    }
 }

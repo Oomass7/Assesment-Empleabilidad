@@ -21,7 +21,7 @@ public class CurrentUserAdapter implements CurrentUserPort {
     @Override
     public User getCurrentUser() {
         String username = getCurrentUsername();
-        return userRepository.findByUsername(username)
+        return userRepository.findByEmail(username)
                 .orElseThrow(() -> new UnauthorizedException("Current user not found"));
     }
 

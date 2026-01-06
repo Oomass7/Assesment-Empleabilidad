@@ -16,6 +16,7 @@ public interface UpdateTaskUseCase {
             String title,
             String description,
             String priority,
-            LocalDateTime dueDate) {
+            LocalDateTime dueDate,
+            Long assignedToId) {
     }
 }

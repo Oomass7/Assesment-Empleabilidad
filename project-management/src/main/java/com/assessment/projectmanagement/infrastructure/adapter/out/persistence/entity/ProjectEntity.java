@@ -60,4 +60,11 @@ public class ProjectEntity {
     @lombok.ToString.Exclude
     @lombok.EqualsAndHashCode.Exclude
     private List<TaskEntity> tasks = new ArrayList<>();
+
+    @ManyToMany
+    @JoinTable(name = "project_members", joinColumns = @JoinColumn(name = "project_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
+    @Builder.Default
+    private List<UserEntity> members = new ArrayList<>();
 }

@@ -5,16 +5,16 @@ package com.assessment.projectmanagement.domain.port.in.user;
  */
 public interface AuthenticateUserUseCase {
 
-    AuthenticationResult authenticate(AuthenticationCommand command);
+        AuthenticationResult authenticate(AuthenticationCommand command);
 
-    record AuthenticationCommand(
-            String username,
-            String password) {
-    }
+        record AuthenticationCommand(
+                        String email,
+                        String password) {
+        }
 
-    record AuthenticationResult(
-            String token,
-            String username,
-            String role) {
-    }
+        record AuthenticationResult(
+                        String token,
+                        String username,
+                        String role) {
+        }
 }
