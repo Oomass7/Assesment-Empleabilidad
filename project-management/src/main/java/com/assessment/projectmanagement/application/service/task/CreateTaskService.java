@@ -1,6 +1,5 @@
 package com.assessment.projectmanagement.application.service.task;
 
-import com.assessment.projectmanagement.domain.enums.TaskPriority;
 import com.assessment.projectmanagement.domain.enums.TaskStatus;
 import com.assessment.projectmanagement.domain.exception.ResourceNotFoundException;
 import com.assessment.projectmanagement.domain.exception.UnauthorizedException;
@@ -59,7 +58,7 @@ public class CreateTaskService implements CreateTaskUseCase {
                 .title(command.title())
                 .description(command.description())
                 .status(TaskStatus.TODO)
-                .priority(TaskPriority.valueOf(command.priority()))
+                .priority(command.priority())
                 .dueDate(command.dueDate())
                 .project(project)
                 .assignedTo(assignedUser)
@@ -92,12 +91,6 @@ public class CreateTaskService implements CreateTaskUseCase {
 
         if (command.priority() == null) {
             throw new ValidationException("Task priority is required");
-        }
-
-        try {
-            TaskPriority.valueOf(command.priority());
-        } catch (IllegalArgumentException e) {
-            throw new ValidationException("Invalid task priority. Must be: LOW, MEDIUM, HIGH, or CRITICAL");
         }
     }
 }

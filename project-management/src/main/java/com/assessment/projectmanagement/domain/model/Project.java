@@ -28,6 +28,7 @@ public class Project {
     private LocalDateTime endDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean deleted;
 
     private User owner;
 
@@ -130,5 +131,20 @@ public class Project {
                 .count();
 
         return (completedTasks * 100.0) / tasks.size();
+    }
+
+    public void updateDetails(String name, String description, LocalDateTime startDate, LocalDateTime endDate) {
+        if (this.status == ProjectStatus.COMPLETED) {
+            throw new BusinessException("Cannot update details of a completed project");
+        }
+        if (name != null && !name.isBlank())
+            this.name = name;
+        if (description != null)
+            this.description = description;
+        if (startDate != null)
+            this.startDate = startDate;
+        if (endDate != null)
+            this.endDate = endDate;
+        this.updatedAt = LocalDateTime.now();
     }
 }

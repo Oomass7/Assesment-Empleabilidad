@@ -19,6 +19,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.assessment.projectmanagement.domain.port.in.project.UpdateProjectUseCase;
+import com.assessment.projectmanagement.domain.port.in.project.DeleteProjectUseCase;
+import com.assessment.projectmanagement.domain.port.in.project.CompleteProjectUseCase;
+import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.request.UpdateProjectRequest;
 import com.assessment.projectmanagement.domain.port.in.project.InviteMemberUseCase;
 import com.assessment.projectmanagement.domain.port.in.project.GetProjectMembersUseCase;
 import com.assessment.projectmanagement.infrastructure.adapter.in.web.dto.request.InviteMemberRequest;
@@ -45,6 +49,9 @@ public class ProjectController {
         private final InviteMemberUseCase inviteMemberUseCase;
         private final GetProjectMembersUseCase getProjectMembersUseCase;
         private final GetProjectAuditLogsUseCase getProjectAuditLogsUseCase;
+        private final UpdateProjectUseCase updateProjectUseCase;
+        private final DeleteProjectUseCase deleteProjectUseCase;
+        private final CompleteProjectUseCase completeProjectUseCase;
 
         /**
          * Create a new project
@@ -143,6 +150,34 @@ public class ProjectController {
                                 .map(AuditLogResponse::fromDomain)
                                 .collect(Collectors.toList());
                 return ResponseEntity.ok(ApiResponse.success(response));
+        }
+
+        @Operation(summary = "Update project")
+        @PutMapping("/{id}")
+        public ResponseEntity<ApiResponse<ProjectResponse>> updateProject(@PathVariable Long id,
+                        @Valid @RequestBody UpdateProjectRequest request) {
+                UpdateProjectUseCase.UpdateProjectCommand command = new UpdateProjectUseCase.UpdateProjectCommand(
+                                id,
+                                request.getName(),
+                                request.getDescription(),
+                                request.getStartDate(),
+                                request.getEndDate());
+                Project project = updateProjectUseCase.updateProject(command);
+                return ResponseEntity.ok(ApiResponse.success("Project updated successfully", mapToResponse(project)));
+        }
+
+        @Operation(summary = "Complete project")
+        @PatchMapping("/{id}/complete")
+        public ResponseEntity<ApiResponse<ProjectResponse>> completeProject(@PathVariable Long id) {
+                Project project = completeProjectUseCase.completeProject(id);
+                return ResponseEntity.ok(ApiResponse.success("Project completed successfully", mapToResponse(project)));
+        }
+
+        @Operation(summary = "Delete project (soft delete)")
+        @DeleteMapping("/{id}")
+        public ResponseEntity<ApiResponse<Void>> deleteProject(@PathVariable Long id) {
+                deleteProjectUseCase.deleteProject(id);
+                return ResponseEntity.ok(ApiResponse.success("Project deleted successfully", null));
         }
 
         /**

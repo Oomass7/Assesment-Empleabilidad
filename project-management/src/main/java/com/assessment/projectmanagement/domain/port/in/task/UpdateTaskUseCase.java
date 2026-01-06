@@ -15,7 +15,7 @@ public interface UpdateTaskUseCase {
             Long taskId,
             String title,
             String description,
-            String priority,
+            com.assessment.projectmanagement.domain.enums.TaskPriority priority,
             LocalDateTime dueDate,
             Long assignedToId) {
     }

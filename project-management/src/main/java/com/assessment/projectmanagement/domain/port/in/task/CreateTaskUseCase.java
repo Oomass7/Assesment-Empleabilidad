@@ -14,7 +14,7 @@ public interface CreateTaskUseCase {
     record CreateTaskCommand(
             String title,
             String description,
-            String priority,
+            com.assessment.projectmanagement.domain.enums.TaskPriority priority,
             LocalDateTime dueDate,
             Long projectId,
             Long assignedToId) {

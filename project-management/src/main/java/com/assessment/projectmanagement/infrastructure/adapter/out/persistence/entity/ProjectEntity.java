@@ -20,6 +20,8 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@org.hibernate.annotations.SQLDelete(sql = "UPDATE projects SET deleted = true WHERE id = ?")
+@org.hibernate.annotations.Where(clause = "deleted IS NOT TRUE")
 public class ProjectEntity {
 
     @Id
@@ -47,6 +49,10 @@ public class ProjectEntity {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean deleted = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)

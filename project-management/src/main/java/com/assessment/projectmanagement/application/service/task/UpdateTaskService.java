@@ -1,6 +1,5 @@
 package com.assessment.projectmanagement.application.service.task;
 
-import com.assessment.projectmanagement.domain.enums.TaskPriority;
 import com.assessment.projectmanagement.domain.exception.BusinessException;
 import com.assessment.projectmanagement.domain.exception.ResourceNotFoundException;
 import com.assessment.projectmanagement.domain.exception.UnauthorizedException;
@@ -46,16 +45,7 @@ public class UpdateTaskService implements UpdateTaskUseCase {
             task.assignTo(assignee);
         }
 
-        TaskPriority priority = null;
-        if (command.priority() != null) {
-            try {
-                priority = TaskPriority.valueOf(command.priority());
-            } catch (IllegalArgumentException e) {
-                // Keep existing priority or throw error? Let's ignore invalid priority strings
-            }
-        }
-
-        task.updateDetails(command.title(), command.description(), priority, command.dueDate());
+        task.updateDetails(command.title(), command.description(), command.priority(), command.dueDate());
 
         Task updatedTask = taskRepository.save(task);
 

@@ -19,6 +19,8 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@org.hibernate.annotations.SQLDelete(sql = "UPDATE tasks SET deleted = true WHERE id = ?")
+@org.hibernate.annotations.Where(clause = "deleted IS NOT TRUE")
 public class TaskEntity {
 
     @Id
@@ -50,6 +52,10 @@ public class TaskEntity {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean deleted = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)

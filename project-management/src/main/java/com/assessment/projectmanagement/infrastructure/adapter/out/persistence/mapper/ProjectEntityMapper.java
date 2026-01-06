@@ -43,6 +43,7 @@ public class ProjectEntityMapper {
                 .tasks(project.getTasks() != null ? project.getTasks().stream()
                         .map(taskEntityMapper::toEntity)
                         .collect(java.util.stream.Collectors.toList()) : new java.util.ArrayList<>())
+                .deleted(project.isDeleted())
                 .build();
     }
 
@@ -70,6 +71,7 @@ public class ProjectEntityMapper {
                 .tasks(entity.getTasks() != null ? entity.getTasks().stream()
                         .map(taskEntityMapper::toDomain)
                         .collect(java.util.stream.Collectors.toList()) : new java.util.ArrayList<>())
+                .deleted(entity.isDeleted())
                 .build();
     }
 }

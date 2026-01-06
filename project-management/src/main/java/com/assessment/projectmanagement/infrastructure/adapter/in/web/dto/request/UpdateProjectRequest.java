@@ -14,16 +14,16 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Request to create a new project")
-public class CreateProjectRequest {
+@Schema(description = "Request to update an existing project")
+public class UpdateProjectRequest {
 
     @NotBlank(message = "Project name is required")
     @Size(max = 100, message = "Project name must be less than 100 characters")
-    @Schema(description = "Project name", example = "New Management System")
+    @Schema(description = "Project name", example = "Updated Project Name")
     private String name;
 
     @Size(max = 500, message = "Description must be less than 500 characters")
-    @Schema(description = "Project description", example = "System to manage internal projects")
+    @Schema(description = "Project description", example = "Updated project description")
     private String description;
 
     @Schema(description = "Project start date", example = "2024-01-01T09:00:00")

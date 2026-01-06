@@ -14,6 +14,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import com.assessment.projectmanagement.domain.port.in.task.GetTasksByProjectUseCase;
+import com.assessment.projectmanagement.domain.port.in.task.GetTaskUseCase;
+import com.assessment.projectmanagement.domain.port.in.task.DeleteTaskUseCase;
+import com.assessment.projectmanagement.domain.port.in.task.AssignTaskUseCase;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,6 +39,9 @@ public class TaskController {
     private final CompleteTaskUseCase completeTaskUseCase;
     private final GetTasksByProjectUseCase getTasksByProjectUseCase;
     private final UpdateTaskUseCase updateTaskUseCase;
+    private final GetTaskUseCase getTaskUseCase;
+    private final DeleteTaskUseCase deleteTaskUseCase;
+    private final AssignTaskUseCase assignTaskUseCase;
 
     /**
      * Create a new task in a project
@@ -111,6 +117,37 @@ public class TaskController {
 
         Task task = updateTaskUseCase.updateTask(command);
         return ResponseEntity.ok(ApiResponse.success("Task updated successfully", mapToResponse(task)));
+    }
+
+    @Operation(summary = "Get task by ID")
+    @GetMapping("/tasks/{id}")
+    public ResponseEntity<ApiResponse<TaskResponse>> getTaskById(@PathVariable Long id) {
+        Task task = getTaskUseCase.getTaskById(id);
+        return ResponseEntity.ok(ApiResponse.success(mapToResponse(task)));
+    }
+
+    @Operation(summary = "Get all tasks")
+    @GetMapping("/tasks")
+    public ResponseEntity<ApiResponse<List<TaskResponse>>> getAllTasks() {
+        List<Task> tasks = getTaskUseCase.getAllTasks();
+        List<TaskResponse> response = tasks.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "Assign task to user")
+    @PatchMapping("/tasks/{id}/assign")
+    public ResponseEntity<ApiResponse<TaskResponse>> assignTask(@PathVariable Long id, @RequestParam Long userId) {
+        Task task = assignTaskUseCase.assignTask(id, userId);
+        return ResponseEntity.ok(ApiResponse.success("Task assigned successfully", mapToResponse(task)));
+    }
+
+    @Operation(summary = "Delete task (soft delete)")
+    @DeleteMapping("/tasks/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable Long id) {
+        deleteTaskUseCase.deleteTask(id);
+        return ResponseEntity.ok(ApiResponse.success("Task deleted successfully", null));
     }
 
     /**

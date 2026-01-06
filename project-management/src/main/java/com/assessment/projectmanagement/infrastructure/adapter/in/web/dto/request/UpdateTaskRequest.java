@@ -19,8 +19,7 @@ public class UpdateTaskRequest {
 
     private String description;
 
-    @NotBlank(message = "Task priority is required")
-    private String priority;
+    private com.assessment.projectmanagement.domain.enums.TaskPriority priority;
 
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dueDate;

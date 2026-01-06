@@ -12,6 +12,12 @@ import com.assessment.projectmanagement.application.service.user.GetAllUsersServ
 import com.assessment.projectmanagement.application.service.project.InviteMemberService;
 import com.assessment.projectmanagement.application.service.project.GetProjectMembersService;
 import com.assessment.projectmanagement.application.service.project.GetProjectAuditLogsService;
+import com.assessment.projectmanagement.application.service.project.DeleteProjectService;
+import com.assessment.projectmanagement.application.service.project.UpdateProjectService;
+import com.assessment.projectmanagement.application.service.project.CompleteProjectService;
+import com.assessment.projectmanagement.application.service.task.DeleteTaskService;
+import com.assessment.projectmanagement.application.service.task.GetTaskService;
+import com.assessment.projectmanagement.application.service.task.AssignTaskService;
 import com.assessment.projectmanagement.domain.port.in.project.ActivateProjectUseCase;
 import com.assessment.projectmanagement.domain.port.in.project.CreateProjectUseCase;
 import com.assessment.projectmanagement.domain.port.in.project.GetProjectUseCase;
@@ -24,6 +30,12 @@ import com.assessment.projectmanagement.domain.port.in.user.GetAllUsersUseCase;
 import com.assessment.projectmanagement.domain.port.in.project.InviteMemberUseCase;
 import com.assessment.projectmanagement.domain.port.in.project.GetProjectMembersUseCase;
 import com.assessment.projectmanagement.domain.port.in.project.GetProjectAuditLogsUseCase;
+import com.assessment.projectmanagement.domain.port.in.project.DeleteProjectUseCase;
+import com.assessment.projectmanagement.domain.port.in.project.UpdateProjectUseCase;
+import com.assessment.projectmanagement.domain.port.in.project.CompleteProjectUseCase;
+import com.assessment.projectmanagement.domain.port.in.task.DeleteTaskUseCase;
+import com.assessment.projectmanagement.domain.port.in.task.GetTaskUseCase;
+import com.assessment.projectmanagement.domain.port.in.task.AssignTaskUseCase;
 import com.assessment.projectmanagement.domain.port.in.task.UpdateTaskUseCase;
 import com.assessment.projectmanagement.application.service.task.UpdateTaskService;
 import com.assessment.projectmanagement.domain.port.out.*;
@@ -106,6 +118,30 @@ public class BeanConfiguration {
                 return new GetProjectAuditLogsService(auditLogPort, taskRepository);
         }
 
+        @Bean
+        public DeleteProjectUseCase deleteProjectUseCase(
+                        ProjectRepositoryPort projectRepository,
+                        AuditLogPort auditLogPort,
+                        CurrentUserPort currentUserPort) {
+                return new DeleteProjectService(projectRepository, auditLogPort, currentUserPort);
+        }
+
+        @Bean
+        public UpdateProjectUseCase updateProjectUseCase(
+                        ProjectRepositoryPort projectRepository,
+                        AuditLogPort auditLogPort,
+                        CurrentUserPort currentUserPort) {
+                return new UpdateProjectService(projectRepository, auditLogPort, currentUserPort);
+        }
+
+        @Bean
+        public CompleteProjectUseCase completeProjectUseCase(
+                        ProjectRepositoryPort projectRepository,
+                        AuditLogPort auditLogPort,
+                        CurrentUserPort currentUserPort) {
+                return new CompleteProjectService(projectRepository, auditLogPort, currentUserPort);
+        }
+
         /**
          * Task Use Cases
          */
@@ -159,6 +195,28 @@ public class BeanConfiguration {
                                 currentUserPort,
                                 userRepository,
                                 auditLogPort);
+        }
+
+        @Bean
+        public DeleteTaskUseCase deleteTaskUseCase(
+                        TaskRepositoryPort taskRepository,
+                        AuditLogPort auditLogPort,
+                        CurrentUserPort currentUserPort) {
+                return new DeleteTaskService(taskRepository, auditLogPort, currentUserPort);
+        }
+
+        @Bean
+        public GetTaskUseCase getTaskUseCase(TaskRepositoryPort taskRepository) {
+                return new GetTaskService(taskRepository);
+        }
+
+        @Bean
+        public AssignTaskUseCase assignTaskUseCase(
+                        TaskRepositoryPort taskRepository,
+                        UserRepositoryPort userRepository,
+                        AuditLogPort auditLogPort,
+                        CurrentUserPort currentUserPort) {
+                return new AssignTaskService(taskRepository, userRepository, auditLogPort, currentUserPort);
         }
 
         /**

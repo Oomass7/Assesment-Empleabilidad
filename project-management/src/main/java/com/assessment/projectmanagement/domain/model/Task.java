@@ -28,6 +28,7 @@ public class Task {
     private LocalDateTime completedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean deleted;
 
     private Project project;
     private User assignedTo;
